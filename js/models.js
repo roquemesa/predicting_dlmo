@@ -90,15 +90,6 @@ function alphNonPhotic(I){
     return a0*(Math.pow(I/I0,p))*(I/(I+100));
 }
 
-function alphNonPhotic_Hannay(I){
-    
-    let I0 = 9500;
-    let p = 0.5;
-    let a0 = 0.1;
-        
-    return a0*(Math.pow(I/I0,p))*(I/(I+100));
-}
-
 
 function clockModel_ForgerSimpler(t, y) {
 
@@ -192,58 +183,38 @@ function clockModel_HilaireNonPhotic(t, y) {
 function clockModel_Hannay(t, y) {
 
     let index = Math.round(t / DELTA_T);
-
     let I = localLD[index];
-    let sleepWakeStatus = localSW[index];
-    
-    let x = y[0];
-    let xc = y[1];
+
+    let R = y[0];
+    let Psi = y[1];
     let n = y[2];
 
-    let tx = 24.2;
-    let G = 37;
-    let k = .55;
-    let mu = .13;
-    let beta = 0.007;
-    let q = 1/3;
-    let rho = 0.032;
+    // Copy the parameters over
+    let tau = 23.80;
+    let K = 0.06358;
+    let gamma = 0.024;
+    let Beta1 = -0.09318;
+    let A1 = 0.3855;
+    let A2 = 0.1977;
+    let BetaL1 = -0.0026;
+    let BetaL2 = -0.957756;
+    let sigma = 0.0400692;
+    let G = 33.75;
+    let alpha_0 = 0.05;
+    let delta = 0.0075;
+    let p = 1.5; 
+    let I0 = 9325.0;
 
-    let C = t % 24;
-    let phi_xcx = -2.98;
-    let phi_ref = 0.97;
-    let CBTmin = phi_xcx + phi_ref;
-    CBTmin = CBTmin*24/(2*Math.PI);
-    let psi_cx = C - CBTmin;
-    psi_cx = psi_cx % 24;
-
-    let Bh = G * (1 - n) * alphNonPhotic(I);
-    let B = Bh * (1 - .4 * x) * (1 - .4 * xc);
-
-        // Subtract from 1 to make the sign work
-    // From St. Hilaire (2007): sigma equals either 1 (for sleep/rest) or 0 (for wake/activity),
-    let sigma = 1 - sleepWakeStatus;
-    if (sigma < 1/2){
-        sigma = 0;
-    }
-    else{
-        sigma = 1;
-    }
-
-    let Nsh = rho*(1/3 - sigma);
-    
-    if (psi_cx > 16.5 && psi_cx < 21){
-        Nsh = rho*(1/3);
-    }else{
-        Ns = Nsh*(1 - Math.tanh(10*x));
-    }
-        
-
+    let alpha_light = alpha_0*Math.pow(I, p)/(Math.pow(I, p) + I0);
     let dydt = [0, 0, 0];
 
-    dydt[0] = Math.PI / 12.0 * (xc + mu*((1/3)*x + (4/3)*Math.pow(x,3.0) - 256/105*Math.pow(x,7.0)) + B + Ns);
-    dydt[1] = Math.PI / 12.0 * (q*B*xc - x*(Math.pow((24/(0.99729*tx)),2) + k*B));
-    dydt[2] = 60.0 * (alphNonPhotic(I) * (1.0 - n) - beta * n);
-    
+    let Bhat = G*(1.0-n)*alpha_light;
+    let LightAmp = A1*0.5*Bhat*(1.0-Math.pow(R,4.0))*Math.cos(Psi+BetaL1) + A2*0.5*Bhat*R*(1.0-Math.pow(R,8.0))* Math.cos(2.0*Psi+BetaL2);
+    let LightPhase = sigma*Bhat-A1*Bhat*0.5*(Math.pow(R,3.0)+1.0/R)*Math.sin(Psi+BetaL1) - A2*Bhat*0.5*(1.0+Math.pow(R,8.0))*Math.sin(2.0*Psi+BetaL2);
+
+    dydt[0] = -1.0*gamma*R+K*Math.cos(Beta1)/2.0*R*(1.0-Math.pow(R,4.0))+LightAmp;
+    dydt[1] = 2.0*Math.Pi/tau+K/2.0*Math.sin(Beta1)*(1+Math.pow(R,4.0))+LightPhase;
+    dydt[2] = 60.0*(alpha_light*(1.0-n)-delta*n);
     return dydt;
 }
 
@@ -296,7 +267,6 @@ function rk4_Hannay(tot, initialConditions) {
     let output = new Array(N + 1);
 
     let w = [initialConditions[0], initialConditions[1], initialConditions[2]];
-
     output[0] = [w[0], w[1], w[2]];
 
 
@@ -354,9 +324,10 @@ function getCircadianOutput_Hannay(timestamps, steps, sleep, firstTimestamp) {
     
     populateLightFromStepsAndSleep(timestamps, steps, sleep);
     let initialConditions = new Array(3);
-    initialConditions[0] = 2.0 * Math.random() - 1.0;
-    initialConditions[1] = 2.0 * Math.random() - 1.0;
-    initialConditions[2] = Math.random();
+    initialConditions[0] = 0.70;
+    initialConditions[1] = 0.0;
+    initialConditions[2] = 0.0;
+    //TODO: Upgrade this later to do a better job of guessing the starting point 
     // let initialConditions = getICFromLimitCycleAtTime(firstTimestamp);
         
     let output = rk4_Hannay(durationInHours, initialConditions);
