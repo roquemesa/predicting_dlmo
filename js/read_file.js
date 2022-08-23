@@ -96,13 +96,65 @@ function setPlot(labels, data) {
 function showFile() {
     
     if (window.File && window.FileReader && window.FileList && window.Blob) {
-
+        console.log(document.getElementById('Hannay'))
+        console.log(document.getElementById('Hilaire'))
+        console.log("in if")
         var preview = document.getElementById('show-text');
 
         var files = document.querySelector('input[type=file]').files;
         var ctx = document.getElementById("summary").innerHTML = "<b>Uploaded file name, Predicted DLMO </b><br>";
 
         for (let j = 0; j < files.length; j++){
+            console.log("in loop")
+            var file = files[j];
+            let filename = file.name;
+
+            var reader = new FileReader();
+            var textFile = /text.*/;
+            var excelFile = /application.*/;
+
+            console.log(file);
+            if (file.type.match(textFile) || file.type.match(excelFile)) {
+                reader.onload = function (event) {
+
+                    var worker = new Worker('./js/prep_data.js');
+                    worker.onmessage = function (e) {
+                        if (typeof e.data === 'number') {
+                            // bar.animate(e.data);
+                        } else {
+                            const {filename, labels, data, minimumTime} = e.data;
+                            // setPlot(labels, data);
+                            setFilename(filename);
+                            setSummary(minimumTime);
+                        }
+                    };
+
+                    let rawData = event.target.result;
+
+                    worker.postMessage({rawData, filename});
+                }
+            } else {
+                preview.innerHTML = "<span class='error'>It doesn't seem to be a text file!</span>";
+            }
+            reader.readAsText(file);
+        }
+    } else {
+        alert("Your browser is too old to support HTML5 File API");
+    }
+}
+
+
+function showFile_Hannay() {
+    
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        console.log(document.getElementById('Hannay').value)
+        var preview = document.getElementById('show-text');
+
+        var files = document.querySelector('input[type=file]').files;
+        var ctx = document.getElementById("summary").innerHTML = "<b>Uploaded file name, Predicted DLMO </b><br>";
+
+        for (let j = 0; j < files.length; j++){
+            console.log("in loop")
             var file = files[j];
             let filename = file.name;
 

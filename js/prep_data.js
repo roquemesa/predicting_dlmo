@@ -201,9 +201,11 @@ onmessage = function (e) {
     
     const {minuteByMinuteTime, minuteByMinuteModelInput, minuteByMinuteSleepWake, firstTimestamp} = formatDataForIntegration(dates, times, light, counts, sleepWake);
     
-    let output = getCircadianOutput(minuteByMinuteTime, minuteByMinuteModelInput, minuteByMinuteSleepWake, firstTimestamp);
+    // let output = getCircadianOutput(minuteByMinuteTime, minuteByMinuteModelInput, minuteByMinuteSleepWake, firstTimestamp);
 
-    const {labels, data, minimumTime} = getDataForPlot(output, firstTimestamp);
+    let output_Hannay = getCircadianOutput_Hannay(minuteByMinuteTime, minuteByMinuteModelInput, minuteByMinuteSleepWake, firstTimestamp);
+
+    const {labels, data, minimumTime} = getDataForPlot(output_Hannay, firstTimestamp);
 
     postMessage({filename, labels, data, minimumTime});
 }
